@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.local
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
+.venv
+venv
+.idea
+.vscode
+node_modules
+staticfiles
+media
+README.md

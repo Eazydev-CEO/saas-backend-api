@@ -1,0 +1,7 @@
+Hi {{ user.first_name|default:user.email }},
+
+Welcome aboard. Confirm your email address to activate your account:
+
+{{ verify_url }}
+
+This link expires in {{ ttl_hours }} hours. If you didn't sign up, ignore this email.

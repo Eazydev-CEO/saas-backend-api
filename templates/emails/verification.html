@@ -1,0 +1,17 @@
+{% extends "emails/base.html" %}
+{% block subject %}Verify your email{% endblock %}
+{% block content %}
+  <p style="margin:0 0 16px;">Hi {{ user.first_name|default:user.email }},</p>
+  <p style="margin:0 0 16px;">Welcome aboard. Please confirm your email address to activate your account.</p>
+  <p style="margin:24px 0;">
+    <a href="{{ verify_url }}"
+       style="display:inline-block;padding:12px 24px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">
+      Verify email
+    </a>
+  </p>
+  <p style="margin:0 0 16px;color:#6b7280;font-size:13px;">
+    Or paste this link into your browser:<br>
+    <a href="{{ verify_url }}" style="color:#2563eb;word-break:break-all;">{{ verify_url }}</a>
+  </p>
+  <p style="margin:0;color:#6b7280;font-size:13px;">This link expires in {{ ttl_hours }} hours.</p>
+{% endblock %}
