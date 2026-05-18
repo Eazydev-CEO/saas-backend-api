@@ -48,6 +48,6 @@ COPY --chown=app:app . /app
 RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/start-prod.sh
 USER app
 
-EXPOSE 8000
+EXPOSE 8001
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8001"]

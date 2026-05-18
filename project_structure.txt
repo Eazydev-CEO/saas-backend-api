@@ -1,0 +1,181 @@
+saas_backend/
+├── .env.example
+├── .gitignore
+├── .dockerignore
+├── Dockerfile
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── nginx/
+│   └── nginx.conf
+├── requirements/
+│   ├── base.txt
+│   ├── development.txt
+│   └── production.txt
+├── manage.py
+├── pyproject.toml
+├── pytest.ini
+├── README.md
+├── scripts/
+│   ├── entrypoint.sh
+│   └── start-prod.sh
+├── config/                          # Django project root
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── wsgi.py
+│   ├── celery.py
+│   ├── urls.py
+│   └── settings/
+│       ├── __init__.py
+│       ├── base.py
+│       ├── development.py
+│       ├── production.py
+│       └── test.py
+├── apps/
+│   ├── __init__.py
+│   ├── common/                      # Shared utilities, base classes
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── models.py                # TimeStampedModel, UUIDModel
+│   │   ├── exceptions.py            # Custom exception hierarchy
+│   │   ├── exception_handler.py     # DRF custom handler
+│   │   ├── pagination.py
+│   │   ├── permissions.py           # Base permission classes
+│   │   ├── throttling.py            # Plan-aware throttles
+│   │   ├── middleware.py            # Request ID, logging
+│   │   ├── validators.py
+│   │   ├── utils.py
+│   │   └── responses.py             # Standardized response builders
+│   ├── users/
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── admin.py
+│   │   ├── models.py                # Custom User
+│   │   ├── managers.py
+│   │   ├── serializers.py
+│   │   ├── services.py
+│   │   ├── selectors.py
+│   │   ├── permissions.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── signals.py
+│   │   └── migrations/
+│   ├── authentication/
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── models.py                # EmailVerificationToken, PasswordResetToken, Session
+│   │   ├── serializers.py
+│   │   ├── services.py              # register, verify, login, logout, reset
+│   │   ├── tasks.py                 # Celery: send emails
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── tokens.py                # JWT customization
+│   │   └── migrations/
+│   ├── subscriptions/
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── admin.py
+│   │   ├── models.py                # Plan, Subscription, UsageQuota
+│   │   ├── serializers.py
+│   │   ├── services.py              # subscribe, upgrade, expire
+│   │   ├── selectors.py
+│   │   ├── permissions.py           # HasActiveSubscription, HasFeature
+│   │   ├── middleware.py            # Attach subscription to request
+│   │   ├── tasks.py                 # expire_subscriptions periodic
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── management/commands/seed_plans.py
+│   │   └── migrations/
+│   ├── api_keys/
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── models.py                # APIKey (hashed)
+│   │   ├── authentication.py        # DRF auth class
+│   │   ├── serializers.py
+│   │   ├── services.py              # generate, rotate, revoke
+│   │   ├── views.py
+│   │   └── urls.py
+│   ├── analytics/
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── models.py                # RequestLog, DailyUsage
+│   │   ├── middleware.py            # Record requests
+│   │   ├── services.py
+│   │   ├── selectors.py             # Aggregations
+│   │   ├── tasks.py                 # Rollup daily usage
+│   │   └── migrations/
+│   └── dashboard/
+│       ├── __init__.py
+│       ├── apps.py
+│       ├── serializers.py
+│       ├── views.py
+│       └── urls.py
+├── templates/
+│   └── emails/
+│       ├── base.html
+│       ├── verification.html
+│       └── password_reset.html
+├── static/
+└── tests/
+    ├── conftest.py
+    ├── factories.py
+    ├── test_authentication.py
+    ├── test_subscriptions.py
+    ├── test_api_keys.py
+    └── test_dashboard.py
+
+
+
+Database Design (ERD)
+┌─────────────────────────┐
+│         User            │
+│─────────────────────────│
+│ id (UUID, PK)           │
+│ email (unique, indexed) │
+│ password_hash           │
+│ first_name, last_name   │
+│ role (enum)             │
+│ is_active, is_verified  │
+│ created_at, updated_at  │
+│ last_login_at           │
+└──────────┬──────────────┘
+           │ 1
+           │
+   ┌───────┼────────────────────┬─────────────────┬──────────────────┐
+   │       │                    │                 │                  │
+   │ N     │ N                  │ 1               │ N                │ N
+┌──▼───────────────┐  ┌─────────▼──────────┐ ┌────▼─────────┐  ┌─────▼────────────┐
+│ EmailVerification│  │ PasswordResetToken │ │ Subscription │  │     APIKey       │
+│      Token       │  │────────────────────│ │──────────────│  │──────────────────│
+│──────────────────│  │ id, user_id        │ │ id, user_id  │  │ id, user_id      │
+│ id, user_id      │  │ token_hash         │ │ plan_id (FK) │  │ name, prefix     │
+│ token_hash       │  │ expires_at         │ │ status       │  │ key_hash         │
+│ expires_at       │  │ used_at            │ │ started_at   │  │ last_used_at     │
+│ used_at          │  └────────────────────┘ │ expires_at   │  │ revoked_at       │
+└──────────────────┘                         │ auto_renew   │  │ created_at       │
+                                             └──────┬───────┘  └──────────────────┘
+                                                    │ N
+                                                    │
+                                             ┌──────▼───────┐
+                                             │     Plan     │
+                                             │──────────────│
+                                             │ id, name     │
+                                             │ slug, price  │
+                                             │ request_quota│
+                                             │ rate_limit   │
+                                             │ features(JSON│
+                                             │ duration_days│
+                                             └──────────────┘
+
+┌──────────────────────┐    ┌──────────────────────┐
+│     RequestLog       │    │     DailyUsage       │
+│──────────────────────│    │──────────────────────│
+│ id, user_id (FK)     │    │ id, user_id (FK)     │
+│ api_key_id (FK,null) │    │ date                 │
+│ method, path         │    │ request_count        │
+│ status_code          │    │ error_count          │
+│ response_ms          │    │ avg_response_ms      │
+│ ip_address           │    │ unique (user_id,date)│
+│ created_at (indexed) │    └──────────────────────┘
+└──────────────────────┘
+   ▲
+   │ rolled-up nightly into DailyUsage by Celery beat

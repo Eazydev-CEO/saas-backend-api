@@ -104,12 +104,12 @@ docker compose up --build           # postgres, redis, mailhog, web, worker, bea
 
 Wait for the web container's startup log. Then:
 
-- API:           http://localhost:8000/api/v1/
-- Swagger UI:    http://localhost:8000/api/docs/
-- Redoc:         http://localhost:8000/api/redoc/
-- OpenAPI schema:http://localhost:8000/api/schema/
-- Admin:         http://localhost:8000/admin/
-- Mailhog UI:    http://localhost:8000  (port 8025)
+- API:           http://localhost:8001/api/v1/
+- Swagger UI:    http://localhost:8001/api/docs/
+- Redoc:         http://localhost:8001/api/redoc/
+- OpenAPI schema:http://localhost:8001/api/schema/
+- Admin:         http://localhost:8001/admin/
+- Mailhog UI:    http://localhost:8001  (port 8025)
 
 Migrations and plan seeding run automatically on web container startup (controlled by `RUN_MIGRATIONS=true`).
 

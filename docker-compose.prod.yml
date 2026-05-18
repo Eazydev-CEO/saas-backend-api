@@ -31,7 +31,7 @@ services:
       - redis
     command: ["/app/scripts/start-prod.sh"]
     expose:
-      - "8000"
+      - "8001"
 
   worker:
     build:
