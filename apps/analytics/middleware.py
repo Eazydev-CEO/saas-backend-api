@@ -7,7 +7,7 @@ broken analytics path can never break the API.
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse
 

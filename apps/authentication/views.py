@@ -199,7 +199,7 @@ class SessionListView(APIView):
         qs = UserSession.objects.filter(user=request.user).order_by("-created_at")
         data = SessionSerializer(qs, many=True).data
         # `is_active` is derived; emit it explicitly
-        for row, session in zip(data, qs):
+        for row, session in zip(data, qs, strict=False):
             row["is_active"] = session.is_active
         return success(data)
 

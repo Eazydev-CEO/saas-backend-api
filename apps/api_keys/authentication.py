@@ -7,7 +7,6 @@ Accepts the key via either:
 from __future__ import annotations
 
 import logging
-from typing import Optional, Tuple
 
 from rest_framework import authentication, exceptions
 from rest_framework.request import Request
@@ -25,7 +24,7 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
     keyword = "Api-Key"
     header_name = "HTTP_X_API_KEY"
 
-    def authenticate(self, request: Request) -> Optional[Tuple]:
+    def authenticate(self, request: Request) -> tuple | None:
         plaintext = self._extract_key(request)
         if not plaintext:
             return None  # Fall through to other auth classes
@@ -66,5 +65,7 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
             try:
                 return auth[1].decode("ascii")
             except UnicodeDecodeError:
-                raise exceptions.AuthenticationFailed("Invalid API key header.")
+                # `from None`: the decode error quotes the raw bytes the client
+                # sent, which should not surface in an auth failure response.
+                raise exceptions.AuthenticationFailed("Invalid API key header.") from None
         return None

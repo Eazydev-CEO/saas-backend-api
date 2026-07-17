@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pytest
 from django.core import mail
-from django.urls import reverse
 
 from apps.authentication.models import (
     EmailVerificationToken,

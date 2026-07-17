@@ -10,7 +10,6 @@ from django.core.management.base import BaseCommand
 
 from apps.subscriptions.models import Plan, PlanSlug
 
-
 PLANS = [
     {
         "name": "Free",

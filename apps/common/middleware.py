@@ -7,18 +7,18 @@ ID — essential for tracing in production.
 """
 from __future__ import annotations
 
+import contextvars
 import logging
 import time
 import uuid
-from typing import Any, Callable
+from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse
 
 logger = logging.getLogger(__name__)
 
-# Thread-local request ID for log filter access
-import contextvars
-
+# Carries the current request ID so RequestIDLogFilter can reach it without
+# threading the request through every call site.
 _request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
     "request_id", default="-"
 )

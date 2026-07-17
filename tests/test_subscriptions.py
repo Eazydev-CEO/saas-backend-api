@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from apps.subscriptions.models import Subscription, SubscriptionStatus, UsageQuota
@@ -33,8 +34,10 @@ class TestEnrollment:
     def test_only_one_active_subscription_constraint(self):
         user = UserFactory()
         enroll_in_free_plan(user)
-        # The DB constraint should prevent two simultaneous active subs
-        with pytest.raises(Exception):
+        # The partial unique constraint must reject a second active subscription.
+        # Asserting IntegrityError specifically, so the test cannot pass on an
+        # unrelated failure such as a typo raising AttributeError.
+        with pytest.raises(IntegrityError):
             Subscription.objects.create(
                 user=user,
                 plan=user.subscriptions.first().plan,

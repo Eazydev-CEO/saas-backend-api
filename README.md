@@ -1,8 +1,27 @@
 # SaaS Backend API
 
-A production-grade Django REST Framework backend for a multi-tenant SaaS product. Implements authentication, subscription billing tiers, API key management, request analytics, and a dashboard — packaged for Docker deployment.
+[![CI](https://github.com/Eazydev-CEO/saas-backend-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Eazydev-CEO/saas-backend-api/actions/workflows/ci.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB.svg)](https://www.python.org/)
+[![Django 5](https://img.shields.io/badge/django-5.0-092E20.svg)](https://www.djangoproject.com/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-This isn't a tutorial project. The architecture and code quality target what a real Series A startup ships.
+A Django REST Framework backend for a multi-tenant SaaS product: JWT and API-key
+authentication, subscription tiers with per-plan quotas and throttling, and request
+analytics with pre-aggregated daily rollups. Runs on Docker with PostgreSQL, Redis,
+and Celery.
+
+The API surface is documented by a generated OpenAPI 3 schema, and the 40-test suite
+runs against real PostgreSQL and Redis in CI on every push.
+
+---
+
+## Screenshots
+
+The generated OpenAPI schema, served by the running application:
+
+| Swagger UI (`/api/docs/`) | Redoc (`/api/redoc/`) |
+|---|---|
+| ![Swagger UI listing the API-key and authentication endpoints](docs/screenshots/api-docs-swagger.png) | ![Redoc rendering of the same schema with response samples](docs/screenshots/api-redoc.png) |
 
 ---
 
@@ -104,14 +123,31 @@ docker compose up --build           # postgres, redis, mailhog, web, worker, bea
 
 Wait for the web container's startup log. Then:
 
-- API:           http://localhost:8001/api/v1/
-- Swagger UI:    http://localhost:8001/api/docs/
-- Redoc:         http://localhost:8001/api/redoc/
-- OpenAPI schema:http://localhost:8001/api/schema/
-- Admin:         http://localhost:8001/admin/
-- Mailhog UI:    http://localhost:8001  (port 8025)
+| Service | URL |
+|---|---|
+| API root | http://localhost:8001/api/v1/ |
+| Swagger UI | http://localhost:8001/api/docs/ |
+| Redoc | http://localhost:8001/api/redoc/ |
+| OpenAPI schema | http://localhost:8001/api/schema/ |
+| Admin | http://localhost:8001/admin/ |
+| Mailhog UI | http://localhost:8025/ |
 
 Migrations and plan seeding run automatically on web container startup (controlled by `RUN_MIGRATIONS=true`).
+
+### If a port is already in use
+
+Ports 5432 and 6379 are commonly taken by another project's database. Every host-side
+port is configurable in `.env`, so you can move this stack out of the way without
+touching anything else:
+
+```bash
+POSTGRES_HOST_PORT=5442
+REDIS_HOST_PORT=6389
+WEB_HOST_PORT=8011
+```
+
+Only the host mapping changes — containers still reach each other on the standard
+ports over the compose network, so no application configuration needs to change.
 
 Create a superuser:
 

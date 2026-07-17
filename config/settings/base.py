@@ -241,7 +241,10 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------------
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",
-    "DESCRIPTION": "Production-grade SaaS backend with auth, subscriptions, API keys, and analytics.",
+    "DESCRIPTION": (
+        "Multi-tenant SaaS backend: JWT and API-key authentication, subscription "
+        "tiers with per-plan quotas and throttling, and request analytics."
+    ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,

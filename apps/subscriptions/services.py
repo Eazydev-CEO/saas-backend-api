@@ -7,7 +7,6 @@ unique constraint that allows only one active subscription per user.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from django.db import models, transaction
 from django.utils import timezone

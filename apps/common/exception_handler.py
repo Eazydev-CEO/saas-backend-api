@@ -83,7 +83,7 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
                 code = inner
                 break
 
-    if isinstance(exc, APIException) and isinstance(exc.detail, (str, list, dict)):
+    if isinstance(exc, APIException) and isinstance(exc.detail, str | list | dict):
         message, details = _normalize_details(exc.detail)
     else:
         message = str(exc)

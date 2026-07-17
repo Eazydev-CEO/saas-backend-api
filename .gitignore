@@ -21,3 +21,6 @@ media/
 .mypy_cache/
 .ruff_cache/
 celerybeat-schedule
+
+# uv artifacts (this project pins dependencies via requirements/*.txt)
+uv.lock
