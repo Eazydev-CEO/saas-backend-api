@@ -10,8 +10,8 @@ authentication, subscription tiers with per-plan quotas and throttling, and requ
 analytics with pre-aggregated daily rollups. Runs on Docker with PostgreSQL, Redis,
 and Celery.
 
-The API surface is documented by a generated OpenAPI 3 schema, and the 40-test suite
-runs against real PostgreSQL and Redis in CI on every push.
+The API surface is documented by a generated OpenAPI 3 schema, and the test suite
+runs against a real PostgreSQL database in CI on every push.
 
 ---
 
