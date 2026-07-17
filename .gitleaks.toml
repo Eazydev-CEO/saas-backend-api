@@ -1,8 +1,7 @@
 # gitleaks configuration
 #
-# The default rule set is kept in full. The single global allowlist below exempts
-# an explicitly enumerated set of literal values that are public BY DESIGN — test
-# fixtures and documentation samples. Nothing here is, or has ever been, a real
+# The default rule set is kept in full. The allowlist below exempts one literal
+# value that is public by design. Nothing here is, or has ever been, a real
 # credential.
 #
 # Rule of thumb for changing this file: if a value could ever protect real data,
@@ -10,11 +9,11 @@
 #
 # Why one `[allowlist]` table (and not `[[allowlists]]`): the plural,
 # array-of-tables form is only understood by newer gitleaks releases. Older
-# versions parse the file, silently ignore the unknown key, and report every
+# versions parse the file, silently ignore the unknown key, and report the
 # allowlisted value as a leak. The singular form is understood by every 8.x
 # release, so this config behaves identically in CI and on a developer machine.
-# Matching is done on literal values rather than paths so that moving a file
-# cannot silently widen the exemption.
+# Matching is done on the literal value rather than a path so that moving the
+# file cannot silently widen the exemption.
 
 title = "SaaS Backend API"
 
@@ -23,22 +22,17 @@ useDefault = true
 
 [allowlist]
 description = """
-Public-by-design values:
+sk_live_totallyfake — a deliberately invalid API key in tests/test_api_keys.py.
+The test asserts the authentication layer rejects it with HTTP 401; the value's
+entire purpose is to not work. `sk_live_` is this project's own key prefix, set
+in apps/api_keys/models.py, which is why the Stripe rule takes an interest in it.
 
-1. sk_live_totallyfake
-   A deliberately invalid API key in tests/test_api_keys.py. The test asserts the
-   authentication layer REJECTS it with HTTP 401 — the value's entire purpose is
-   to not work. `sk_live_` is this project's own key prefix (apps/api_keys/models.py),
-   which is why the generic secret rules take an interest in it.
-
-2. ci-placeholder-not-a-real-secret / ci-postgres-password
-   Throwaway credentials for the ephemeral PostgreSQL service container in
-   .github/workflows/ci.yml. They exist only inside a CI runner that is destroyed
-   at the end of the job and are unreachable from outside it.
+The test database credentials in config/settings/test.py and the matching
+PostgreSQL service in .github/workflows/ci.yml are deliberately not listed here.
+The scanner does not flag them, and adding unflagged values would leave entries
+that quietly outlive whatever they were added for.
 """
 regexTarget = "match"
 regexes = [
   '''sk_live_totallyfake''',
-  '''ci-placeholder-not-a-real-secret''',
-  '''ci-postgres-password''',
 ]

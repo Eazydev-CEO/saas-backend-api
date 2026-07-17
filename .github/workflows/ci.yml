@@ -15,6 +15,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.12"
+  DJANGO_SETTINGS_MODULE: config.settings.test
 
 jobs:
   lint:
@@ -30,9 +31,6 @@ jobs:
       - name: ruff
         run: ruff check --output-format=github .
       - name: Django system checks
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings.test
-          DJANGO_SECRET_KEY: ci-placeholder-not-a-real-secret
         run: python manage.py check
 
   migrations:
@@ -46,47 +44,27 @@ jobs:
           cache: pip
       - run: pip install -r requirements/development.txt
       - name: No missing migrations
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings.test
-          DJANGO_SECRET_KEY: ci-placeholder-not-a-real-secret
         run: python manage.py makemigrations --check --dry-run
 
   test:
-    name: Tests (PostgreSQL + Redis)
+    name: Tests (PostgreSQL)
     runs-on: ubuntu-latest
     services:
+      # Matches the defaults in config/settings/test.py, so the suite needs no
+      # configuration here. If this block and those defaults ever disagree, the
+      # job fails loudly rather than testing something unintended.
       postgres:
         image: postgres:16-alpine
         env:
           POSTGRES_DB: saas_db
           POSTGRES_USER: saas_user
-          POSTGRES_PASSWORD: ci-postgres-password
+          POSTGRES_PASSWORD: saas_password
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U saas_user"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-      redis:
-        image: redis:7-alpine
-        ports: ["6379:6379"]
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-    env:
-      # Placeholder credentials for throwaway CI services only.
-      DJANGO_SETTINGS_MODULE: config.settings.test
-      DJANGO_SECRET_KEY: ci-placeholder-not-a-real-secret
-      POSTGRES_DB: saas_db
-      POSTGRES_USER: saas_user
-      POSTGRES_PASSWORD: ci-postgres-password
-      POSTGRES_HOST: 127.0.0.1
-      POSTGRES_PORT: 5432
-      REDIS_URL: redis://127.0.0.1:6379/0
-      CELERY_BROKER_URL: redis://127.0.0.1:6379/1
-      CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/2
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
