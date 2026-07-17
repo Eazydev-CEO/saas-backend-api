@@ -37,3 +37,11 @@ class OverviewSerializer(serializers.Serializer):
     subscription = serializers.DictField(allow_null=True)
     usage = UsageSummarySerializer()
     api_keys_active = serializers.IntegerField()
+
+
+class SystemOverviewSerializer(serializers.Serializer):
+    """System-wide totals for the staff dashboard."""
+
+    usage = UsageSummarySerializer()
+    api_keys_active = serializers.IntegerField()
+    users_total = serializers.IntegerField()

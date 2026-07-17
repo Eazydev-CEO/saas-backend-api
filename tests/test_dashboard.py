@@ -59,3 +59,69 @@ class TestRecentRequests:
         resp = auth_client.get("/api/v1/dashboard/requests/recent/?limit=10")
         assert resp.status_code == 200
         assert len(resp.json()["data"]) == 10
+
+
+class TestSystemDashboard:
+    """The staff-only endpoints aggregate across every user.
+
+    The customer-facing endpoints answer "how am I using the API"; these answer
+    "how is everyone using the API". The scope difference is the whole point, so
+    each test asserts it sees another user's traffic — a per-user query would
+    silently pass an "endpoint returns 200" check.
+    """
+
+    def _staff_client(self, api_client):
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        from tests.factories import AdminUserFactory
+
+        staff = AdminUserFactory(is_verified=True)
+        refresh = RefreshToken.for_user(staff)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+        return api_client, staff
+
+    def test_system_overview_counts_other_users_requests(self, api_client, user):
+        _seed_logs(user, 7)
+        client, _ = self._staff_client(api_client)
+        resp = client.get("/api/v1/dashboard/system/overview/")
+        assert resp.status_code == 200
+        body = resp.json()["data"]
+        # The 7 logs belong to `user`, not to the staff member asking.
+        assert body["usage"]["total_requests"] >= 7
+        assert body["users_total"] >= 2
+
+    def test_system_daily_chart_includes_other_users_requests(self, api_client, user):
+        _seed_logs(user, 4)
+        client, _ = self._staff_client(api_client)
+        resp = client.get("/api/v1/dashboard/system/usage/daily/?days=30")
+        assert resp.status_code == 200
+        points = resp.json()["data"]
+        assert sum(p["count"] for p in points) >= 4
+
+    def test_system_monthly_chart_is_reachable_by_staff(self, api_client):
+        client, _ = self._staff_client(api_client)
+        resp = client.get("/api/v1/dashboard/system/usage/monthly/?months=6")
+        assert resp.status_code == 200
+        assert isinstance(resp.json()["data"], list)
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/api/v1/dashboard/system/overview/",
+            "/api/v1/dashboard/system/usage/daily/",
+            "/api/v1/dashboard/system/usage/monthly/",
+        ],
+    )
+    def test_customer_cannot_reach_system_endpoints(self, auth_client, path):
+        assert auth_client.get(path).status_code == 403
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/api/v1/dashboard/system/overview/",
+            "/api/v1/dashboard/system/usage/daily/",
+            "/api/v1/dashboard/system/usage/monthly/",
+        ],
+    )
+    def test_anonymous_cannot_reach_system_endpoints(self, api_client, path):
+        assert api_client.get(path).status_code == 401

@@ -1,7 +1,8 @@
 """Aggregation queries powering the dashboard.
 
-All queries are scoped to a single user and use indexed columns. Results are
-pre-shaped for chart consumption.
+Queries are scoped to a single user, or system-wide when `user` is None (used by
+the staff-only endpoints). All use indexed columns and are pre-shaped for chart
+consumption.
 """
 from __future__ import annotations
 
@@ -15,10 +16,20 @@ from django.utils import timezone
 from .models import DailyUsage, RequestLog
 
 
+def _scope(qs, user):
+    """Limit a queryset to one user, or leave it system-wide when user is None.
+
+    This cannot be expressed as `filter(user=user)`: passing None there means
+    "user IS NULL" — anonymous traffic only — rather than "every user". The
+    distinction has to be explicit.
+    """
+    return qs if user is None else qs.filter(user=user)
+
+
 def usage_summary(user, days: int = 30) -> dict[str, Any]:
-    """High-level summary card data for the dashboard."""
+    """High-level summary card data. `user=None` aggregates across all users."""
     since = timezone.now() - timedelta(days=days)
-    qs = RequestLog.objects.filter(user=user, created_at__gte=since)
+    qs = _scope(RequestLog.objects.filter(created_at__gte=since), user)
     aggregates = qs.aggregate(
         total=Count("id"),
         errors=Count("id", filter=Q(status_code__gte=400)),
@@ -39,12 +50,12 @@ def daily_chart(user, days: int = 30) -> list[dict[str, Any]]:
     """Daily request counts for chart consumption.
 
     Reads from `RequestLog` for the trailing window. For longer windows or
-    higher scale, switch to `DailyUsage`.
+    higher scale, switch to `DailyUsage`. `user=None` aggregates across all users.
     """
     today = timezone.now().date()
     start = today - timedelta(days=days - 1)
     qs = (
-        RequestLog.objects.filter(user=user, created_at__date__gte=start)
+        _scope(RequestLog.objects.filter(created_at__date__gte=start), user)
         .annotate(day=TruncDate("created_at"))
         .values("day")
         .annotate(
@@ -71,10 +82,13 @@ def daily_chart(user, days: int = 30) -> list[dict[str, Any]]:
 
 
 def monthly_chart(user, months: int = 6) -> list[dict[str, Any]]:
-    """Monthly aggregates from the DailyUsage rollup."""
+    """Monthly aggregates from the DailyUsage rollup.
+
+    `user=None` aggregates across all users.
+    """
     today = timezone.now().date().replace(day=1)
     earliest = (today.replace(day=1) - timedelta(days=31 * (months - 1))).replace(day=1)
-    qs = DailyUsage.objects.filter(user=user, date__gte=earliest)
+    qs = _scope(DailyUsage.objects.filter(date__gte=earliest), user)
     buckets: dict[str, dict[str, int]] = {}
     for row in qs:
         key = row.date.strftime("%Y-%m")

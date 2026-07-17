@@ -1,6 +1,7 @@
 """Dashboard endpoints."""
 from __future__ import annotations
 
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -14,6 +15,7 @@ from apps.analytics.selectors import (
     usage_summary,
 )
 from apps.api_keys.models import APIKey
+from apps.common.permissions import IsStaffOrAbove
 from apps.common.responses import success
 from apps.subscriptions.selectors import get_active_subscription
 from apps.subscriptions.serializers import SubscriptionSerializer
@@ -24,6 +26,7 @@ from .serializers import (
     MonthlyChartPointSerializer,
     OverviewSerializer,
     RecentRequestSerializer,
+    SystemOverviewSerializer,
     UsageSummarySerializer,
 )
 
@@ -112,3 +115,56 @@ class RecentRequestsView(APIView):
     def get(self, request: Request) -> Response:
         limit = _parse_int_param(request.query_params.get("limit"), 20, 1, 100)
         return success(recent_requests(request.user, limit=limit))
+
+
+# ─── Staff-only, system-wide ──────────────────────────────────────────────────
+#
+# The views above answer "how am I using the API". These answer "how is everyone
+# using the API", by passing user=None to the same selectors. They are separate
+# endpoints rather than a flag on the existing ones so that the wider scope is
+# gated by its own permission class and cannot be reached by a query parameter.
+
+
+class SystemOverviewView(APIView):
+    permission_classes = [IsStaffOrAbove]
+
+    @extend_schema(
+        responses=SystemOverviewSerializer,
+        tags=["Dashboard"],
+        summary="System-wide usage totals (staff only)",
+    )
+    def get(self, request: Request) -> Response:
+        data = {
+            "usage": usage_summary(None, days=30),
+            "api_keys_active": APIKey.objects.filter(revoked_at__isnull=True).count(),
+            "users_total": get_user_model().objects.count(),
+        }
+        return success(data)
+
+
+class SystemDailyChartView(APIView):
+    permission_classes = [IsStaffOrAbove]
+
+    @extend_schema(
+        parameters=[OpenApiParameter("days", int, description="Window in days (1–90)")],
+        responses=DailyChartPointSerializer(many=True),
+        tags=["Dashboard"],
+        summary="System-wide daily request counts (staff only)",
+    )
+    def get(self, request: Request) -> Response:
+        days = _parse_int_param(request.query_params.get("days"), 30, 1, 90)
+        return success(daily_chart(None, days=days))
+
+
+class SystemMonthlyChartView(APIView):
+    permission_classes = [IsStaffOrAbove]
+
+    @extend_schema(
+        parameters=[OpenApiParameter("months", int, description="Window in months (1–12)")],
+        responses=MonthlyChartPointSerializer(many=True),
+        tags=["Dashboard"],
+        summary="System-wide monthly request totals (staff only)",
+    )
+    def get(self, request: Request) -> Response:
+        months = _parse_int_param(request.query_params.get("months"), 6, 1, 12)
+        return success(monthly_chart(None, months=months))
